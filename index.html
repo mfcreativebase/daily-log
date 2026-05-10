@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MY DAILY LOG">
+<meta name="theme-color" content="#0f0c29">
+<title>MY DAILY LOG</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg: #0f0c29;
+    --bg2: #1a1a2e;
+    --bg3: #16213e;
+    --purple: #a78bfa;
+    --purple-dim: rgba(167,139,250,0.15);
+    --purple-border: rgba(167,139,250,0.35);
+    --text: #e8e0f0;
+    --text-dim: #8880aa;
+    --card-bg: rgba(255,255,255,0.04);
+    --card-border: rgba(255,255,255,0.07);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif; overscroll-behavior: none; }
+  body { display: flex; flex-direction: column; }
+
+  #app { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* HEADER */
+  .header {
+    padding: calc(16px + var(--safe-top)) 20px 14px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--card-border);
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .header-title { font-size: 20px; font-weight: 900; letter-spacing: 0.1em; color: var(--purple); }
+  .header-date { font-size: 12px; color: var(--text-dim); margin-top: 3px; letter-spacing: 0.1em; }
+  .today-badge { margin-left: 7px; background: var(--purple-dim); color: var(--purple); border-radius: 99px; padding: 1px 8px; font-size: 10px; font-weight: 700; }
+  .date-nav { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+  .nav-btn { padding: 5px 14px; font-size: 12px; border-radius: 99px; background: transparent; border: 1px solid rgba(255,255,255,0.15); color: var(--text-dim); cursor: pointer; font-family: inherit; }
+  .nav-btn.today { color: var(--purple); border-color: var(--purple); }
+
+  /* RING */
+  .ring-wrap { display: flex; flex-direction: column; align-items: center; padding: 18px 20px 10px; flex-shrink: 0; }
+  .ring-container { position: relative; width: 110px; height: 110px; }
+  .ring-container svg { transform: rotate(-90deg); }
+  .ring-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ring-pct { font-size: 24px; font-weight: 900; }
+  .ring-label { font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; margin-top: 1px; }
+
+  /* TABS */
+  .tabs { display: flex; border-bottom: 1px solid var(--card-border); flex-shrink: 0; }
+  .tab { flex: 1; padding: 10px 4px; font-size: 11px; font-weight: 600; background: transparent; border: none; border-bottom: 2px solid transparent; color: #6b6484; cursor: pointer; font-family: inherit; letter-spacing: 0.04em; transition: all 0.2s; margin-bottom: -1px; }
+  .tab.active { color: #c4b5fd; border-bottom-color: var(--purple); background: rgba(167,139,250,0.08); }
+
+  /* CONTENT */
+  .content { flex: 1; overflow-y: auto; padding: 14px 14px calc(20px + var(--safe-bottom)); -webkit-overflow-scrolling: touch; }
+
+  /* CHECKLIST */
+  .check-item {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 14px; padding: 13px 14px; margin-bottom: 9px;
+    display: flex; align-items: center; gap: 10px; transition: all 0.2s;
+  }
+  .check-item.done { background: rgba(167,139,250,0.1); border-color: var(--purple-border); }
+  .check-emoji { font-size: 20px; flex-shrink: 0; }
+  .check-info { flex: 1; min-width: 0; }
+  .check-name { font-size: 13px; font-weight: 600; color: #ccc; }
+  .check-item.done .check-name { color: #c4b5fd; }
+  .check-hint { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+  .check-btn {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.15);
+    color: #fff; font-size: 16px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0;
+  }
+  .check-btn.done { background: var(--purple); border-color: var(--purple); }
+
+  .count-ctrl { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+  .count-btn {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12);
+    color: #c4b5fd; font-size: 17px; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; font-weight: 700;
+    line-height: 1;
+  }
+  .count-val { text-align: center; min-width: 36px; }
+  .count-num { font-size: 18px; font-weight: 900; color: var(--text); }
+  .count-num.done { color: var(--purple); }
+  .count-unit { font-size: 9px; color: var(--text-dim); }
+
+  /* GOAL TAB */
+  .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 16px; padding: 15px; margin-bottom: 14px; }
+  .card-label { font-size: 12px; font-weight: 700; color: var(--purple); margin-bottom: 10px; letter-spacing: 0.06em; }
+  textarea {
+    width: 100%; min-height: 90px; background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 11px;
+    color: var(--text); font-size: 14px; line-height: 1.7; resize: vertical;
+    outline: none; font-family: inherit;
+  }
+  textarea::placeholder { color: var(--text-dim); }
+  .summary-row { font-size: 13px; color: #b8b0d0; line-height: 2; }
+  .summary-val { color: var(--purple); font-weight: 700; }
+
+  /* GRAPH TAB */
+  .bar-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; cursor: pointer; margin-bottom: 5px; transition: background 0.15s; }
+  .bar-item.active-date { background: rgba(167,139,250,0.15); }
+  .bar-date { font-size: 11px; color: var(--text-dim); min-width: 34px; }
+  .bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
+  .bar-pct { font-size: 12px; font-weight: 700; color: #c4b5fd; min-width: 34px; text-align: right; }
+
+  /* SVG chart */
+  .chart-wrap { width: 100%; overflow: hidden; }
+  svg.linechart text { font-family: 'Noto Sans JP', sans-serif; }
+
+  /* INSTALL BANNER */
+  .install-banner {
+    position: fixed; bottom: calc(16px + var(--safe-bottom)); left: 50%; transform: translateX(-50%);
+    background: #1a1a2e; border: 1px solid var(--purple-border); border-radius: 14px;
+    padding: 12px 18px; display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 999; max-width: 320px; width: calc(100% - 32px);
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from { opacity:0; transform: translateX(-50%) translateY(20px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+  .install-text { flex: 1; font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .install-text strong { color: var(--text); font-size: 13px; display: block; margin-bottom: 2px; }
+  .install-btn { padding: 8px 14px; background: var(--purple); border: none; border-radius: 99px; color: #fff; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .install-close { background: none; border: none; color: var(--text-dim); font-size: 18px; cursor: pointer; padding: 0 4px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div class="header-title">✦ MY DAILY LOG ✦</div>
+    <div class="header-date" id="headerDate"></div>
+    <div class="date-nav">
+      <button class="nav-btn" onclick="changeDate(-1)">‹ 前日</button>
+      <button class="nav-btn today" onclick="goToday()">今日</button>
+      <button class="nav-btn" onclick="changeDate(1)">翌日 ›</button>
+    </div>
+  </div>
+
+  <div class="ring-wrap">
+    <div class="ring-container">
+      <svg width="110" height="110" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="9"/>
+        <circle id="ringCircle" cx="55" cy="55" r="46" fill="none" stroke="#a78bfa" stroke-width="9"
+          stroke-linecap="round" stroke-dasharray="289.027" stroke-dashoffset="289.027"
+          style="transition: stroke-dashoffset 0.6s ease, stroke 0.4s"/>
+      </svg>
+      <div class="ring-text">
+        <div class="ring-pct" id="ringPct">0%</div>
+        <div class="ring-label">達成率</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('checklist', this)">📋 チェック</button>
+    <button class="tab" onclick="switchTab('goal', this)">🎯 目標・報告</button>
+    <button class="tab" onclick="switchTab('graph', this)">📊 グラフ</button>
+  </div>
+
+  <div class="content">
+    <div id="tab-checklist"></div>
+    <div id="tab-goal" style="display:none"></div>
+    <div id="tab-graph" style="display:none"></div>
+  </div>
+</div>
+
+<div id="installBanner" style="display:none" class="install-banner">
+  <div class="install-text">
+    <strong>📱 ホーム画面に追加</strong>
+    アプリとして使えます
+  </div>
+  <button class="install-btn" id="installBtn">追加する</button>
+  <button class="install-close" onclick="dismissInstall()">✕</button>
+</div>
+
+<script>
+const ITEMS = [
+  { id:'earlyRise',  label:'早起き',                   emoji:'🌅', type:'check' },
+  { id:'dogWalk',    label:'くぅの散歩',                emoji:'🐾', type:'check' },
+  { id:'cigarette',  label:'煙草カウント',              emoji:'🚬', type:'count', unit:'本',  max:10 },
+  { id:'laundry',    label:'洗濯',                      emoji:'👕', type:'check' },
+  { id:'dishes',     label:'洗い物',                    emoji:'🍽️', type:'check' },
+  { id:'chores',     label:'プラス家事（掃除・片付け）', emoji:'🏠', type:'check' },
+  { id:'buymaPost',  label:'BUYMA 投稿',                emoji:'🛍️', type:'count', unit:'商品', min:3 },
+  { id:'buymaImage', label:'BUYMA 画像作成',            emoji:'🖼️', type:'count', unit:'商品', min:3 },
+  { id:'design',     label:'デザイン作業',              emoji:'✏️', type:'count', unit:'商品', min:1 },
+  { id:'youtube',    label:'YouTube 勉強',              emoji:'▶️', type:'check' },
+  { id:'walking',    label:'やすしとウォーキング',      emoji:'🚶', type:'count', unit:'分' },
+];
+
+const TODAY = toKey(new Date());
+let activeDate = TODAY;
+
+function toKey(d) { return d.toISOString().split('T')[0]; }
+function load() { try { return JSON.parse(localStorage.getItem('dailyLog')||'{}'); } catch{ return {}; } }
+function save(d) { localStorage.setItem('dailyLog', JSON.stringify(d)); }
+
+function getDay(date) {
+  const s = load();
+  return s[date] || { checks:{}, counts:{}, goal:'', report:'' };
+}
+function setDay(date, data) {
+  const s = load(); s[date] = data; save(s);
+}
+
+function isDone(item, data) {
+  if (item.type === 'check') return !!data.checks[item.id];
+  const v = parseInt(data.counts[item.id]||0);
+  if (item.id === 'cigarette') return v > 0 && v <= 10;
+  if (!item.min) return v > 0;
+  return v >= item.min;
+}
+
+function calcPct(date) {
+  const data = getDay(date);
+  const done = ITEMS.filter(i => isDone(i, data)).length;
+  return Math.round(done / ITEMS.length * 100);
+}
+
+function updateRing(pct) {
+  const circ = 2 * Math.PI * 46;
+  const offset = circ * (1 - pct / 100);
+  const el = document.getElementById('ringCircle');
+  el.style.strokeDashoffset = offset;
+  el.style.stroke = pct >= 80 ? '#a78bfa' : pct >= 50 ? '#f472b6' : '#fb923c';
+  document.getElementById('ringPct').textContent = pct + '%';
+}
+
+function updateHeader() {
+  const d = new Date(activeDate + 'T00:00:00');
+  const m = d.getMonth()+1, day = d.getDate(), wd = ['日','月','火','水','木','金','土'][d.getDay()];
+  const isToday = activeDate === TODAY;
+  document.getElementById('headerDate').innerHTML =
+    `${activeDate.replace(/-/g,'/')}（${wd}）` +
+    (isToday ? `<span class="today-badge">TODAY</span>` : '');
+}
+
+function renderChecklist() {
+  const data = getDay(activeDate);
+  let html = '';
+  ITEMS.forEach(item => {
+    const done = isDone(item, data);
+    const v = parseInt(data.counts[item.id]||0);
+    let hint = '';
+    if (item.id === 'cigarette') hint = '10本以内で達成';
+    else if (item.min) hint = `最低${item.min}${item.unit}で達成`;
+
+    let ctrl = '';
+    if (item.type === 'check') {
+      ctrl = `<button class="check-btn${done?' done':''}" onclick="toggleCheck('${item.id}')">${done?'✓':''}</button>`;
+    } else {
+      ctrl = `<div class="count-ctrl">
+        <button class="count-btn" onclick="adjustCount('${item.id}',-1)">－</button>
+        <div class="count-val">
+          <div class="count-num${done?' done':''}">${v}</div>
+          <div class="count-unit">${item.unit}</div>
+        </div>
+        <button class="count-btn" onclick="adjustCount('${item.id}',1)">＋</button>
+      </div>`;
+    }
+
+    html += `<div class="check-item${done?' done':''}">
+      <span class="check-emoji">${item.emoji}</span>
+      <div class="check-info">
+        <div class="check-name">${item.label}</div>
+        ${hint ? `<div class="check-hint">${hint}</div>` : ''}
+      </div>
+      ${ctrl}
+    </div>`;
+  });
+  document.getElementById('tab-checklist').innerHTML = html;
+}
+
+function renderGoal() {
+  const data = getDay(activeDate);
+  const pct = calcPct(activeDate);
+  const cig = parseInt(data.counts['cigarette']||0);
+  document.getElementById('tab-goal').innerHTML = `
+    <div class="card">
+      <div class="card-label">🎯 今日の目標</div>
+      <textarea id="goalInput" placeholder="今日やること、意識すること...">${data.goal||''}</textarea>
+    </div>
+    <div class="card">
+      <div class="card-label">📝 成果・報告</div>
+      <textarea id="reportInput" style="min-height:130px" placeholder="今日できたこと、気づいたこと...">${data.report||''}</textarea>
+    </div>
+    <div class="card" style="background:rgba(167,139,250,0.07)">
+      <div class="card-label">📊 本日のサマリー</div>
+      <div class="summary-row">
+        達成率：<span class="summary-val">${pct}%</span><br>
+        煙草：<span class="summary-val">${cig}本</span> ${cig>0&&cig<=10?'✓ 達成':cig>10?'⚠ オーバー':''}<br>
+        BUYMA投稿：<span class="summary-val">${data.counts['buymaPost']||0}商品</span><br>
+        BUYMA画像：<span class="summary-val">${data.counts['buymaImage']||0}商品</span><br>
+        デザイン：<span class="summary-val">${data.counts['design']||0}商品</span><br>
+        ウォーキング：<span class="summary-val">${data.counts['walking']||0}分</span>
+      </div>
+    </div>`;
+
+  document.getElementById('goalInput').addEventListener('input', e => {
+    const d = getDay(activeDate); d.goal = e.target.value; setDay(activeDate, d);
+  });
+  document.getElementById('reportInput').addEventListener('input', e => {
+    const d = getDay(activeDate); d.report = e.target.value; setDay(activeDate, d);
+  });
+}
+
+function renderGraph() {
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const key = toKey(d);
+    const mm = d.getMonth()+1, dd = d.getDate();
+    days.push({ key, label:`${mm}/${dd}`, pct: calcPct(key) });
+  }
+
+  // SVG line chart
+  const W = 320, H = 140, padL = 28, padR = 10, padT = 14, padB = 24;
+  const iW = W - padL - padR, iH = H - padT - padB;
+  const pts = days.map((d,i) => {
+    const x = padL + (i/(days.length-1)) * iW;
+    const y = padT + (1 - d.pct/100) * iH;
+    return { x, y, ...d };
+  });
+  const pathD = pts.map((p,i) => `${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const fillD = pathD + ` L${pts[pts.length-1].x},${padT+iH} L${pts[0].x},${padT+iH} Z`;
+
+  const labels = days.filter((_,i) => i%2===0).map((d,li) => {
+    const idx = li*2;
+    const x = padL + (idx/(days.length-1))*iW;
+    return `<text x="${x.toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="9" fill="#8880aa">${d.label}</text>`;
+  }).join('');
+  const yLines = [0,25,50,75,100].map(v => {
+    const y = padT + (1 - v/100)*iH;
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W-padR}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+            <text x="${padL-3}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="8" fill="#8880aa">${v}</text>`;
+  }).join('');
+
+  let barRows = days.slice().reverse().map(d => {
+    const color = d.pct>=80?'#a78bfa':d.pct>=50?'#f472b6':'#fb923c';
+    return `<div class="bar-item${d.key===activeDate?' active-date':''}" onclick="jumpDate('${d.key}')">
+      <div class="bar-date">${d.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${d.pct}%;background:${color}"></div></div>
+      <div class="bar-pct">${d.pct}%</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('tab-graph').innerHTML = `
+    <div class="card">
+      <div class="card-label">📈 14日間の達成率推移</div>
+      <div class="chart-wrap">
+        <svg class="linechart" viewBox="0 0 ${W} ${H}" width="100%" style="display:block">
+          ${yLines}
+          <defs>
+            <linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="${fillD}" fill="url(#fillGrad)"/>
+          <path d="${pathD}" fill="none" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          ${pts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="#a78bfa"/>`).join('')}
+          ${labels}
+        </svg>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">📅 日別達成率（タップで移動）</div>
+      ${barRows}
+    </div>`;
+}
+
+function jumpDate(key) {
+  activeDate = key;
+  renderAll();
+  switchTab('checklist', document.querySelectorAll('.tab')[0]);
+}
+
+function toggleCheck(id) {
+  const d = getDay(activeDate);
+  d.checks[id] = !d.checks[id];
+  setDay(activeDate, d);
+  renderChecklist();
+  updateRing(calcPct(activeDate));
+}
+
+function adjustCount(id, delta) {
+  const d = getDay(activeDate);
+  d.counts[id] = Math.max(0, (parseInt(d.counts[id]||0)) + delta);
+  setDay(activeDate, d);
+  renderChecklist();
+  updateRing(calcPct(activeDate));
+}
+
+let currentTab = 'checklist';
+function switchTab(name, btn) {
+  currentTab = name;
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['checklist','goal','graph'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===name?'block':'none';
+  });
+  if (name==='checklist') renderChecklist();
+  if (name==='goal') renderGoal();
+  if (name==='graph') renderGraph();
+}
+
+function renderAll() {
+  updateHeader();
+  updateRing(calcPct(activeDate));
+  if (currentTab==='checklist') renderChecklist();
+  if (currentTab==='goal') renderGoal();
+  if (currentTab==='graph') renderGraph();
+}
+
+function changeDate(delta) {
+  const d = new Date(activeDate+'T00:00:00');
+  d.setDate(d.getDate()+delta);
+  const next = toKey(d);
+  if (next <= TODAY) { activeDate = next; renderAll(); }
+}
+function goToday() { activeDate = TODAY; renderAll(); }
+
+// PWA Install
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!localStorage.getItem('installDismissed')) {
+    document.getElementById('installBanner').style.display = 'flex';
+  }
+});
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('installBanner').style.display = 'none';
+});
+function dismissInstall() {
+  localStorage.setItem('installDismissed','1');
+  document.getElementById('installBanner').style.display = 'none';
+}
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  const sw = `
+const CACHE = 'daily-log-v1';
+const ASSETS = [location.pathname];
+self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
+self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+  `;
+  const blob = new Blob([sw], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(() => {});
+}
+
+// Web App Manifest (dynamic)
+const manifest = {
+  name: 'MY DAILY LOG',
+  short_name: 'DailyLog',
+  start_url: location.href,
+  display: 'standalone',
+  background_color: '#0f0c29',
+  theme_color: '#0f0c29',
+  icons: [
+    { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='36' fill='%230f0c29'/%3E%3Ctext x='96' y='130' text-anchor='middle' font-size='110'%3E✦%3C/text%3E%3C/svg%3E", sizes: '192x192', type: 'image/svg+xml' },
+    { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%230f0c29'/%3E%3Ctext x='256' y='340' text-anchor='middle' font-size='290'%3E✦%3C/text%3E%3C/svg%3E", sizes: '512x512', type: 'image/svg+xml' }
+  ]
+};
+const mBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+const mUrl = URL.createObjectURL(mBlob);
+const mLink = document.createElement('link');
+mLink.rel = 'manifest'; mLink.href = mUrl;
+document.head.appendChild(mLink);
+
+// Init
+renderAll();
+</script>
+</body>
+</html>
